@@ -43,8 +43,8 @@
 
 void initUart1();
 void initLeds();
-void writeCharToUart1(char c);
 void writeStringToUart1(char* str);
+int uartEchoReceivedString();
 
 Task_Struct taskButtonStruct;
 Task_Struct taskCardStruct;
@@ -65,23 +65,9 @@ char rxChar[10];
 Void taskButtonFunc(UArg arg0, UArg arg1)
 {
     while (1) {
-        while(UARTCharsAvail(UART1_BASE)) //loop while there are chars
-        {
-            rxChar[index] = UART1_DR_R;
-            if(rxChar[index-1]==13)
-            {
-                rxChar[index-1]='\0';
-                if(strcmp(rxChar,"red")==0)
-                    redLED^=1;
-                if(strcmp(rxChar,"blue")==0)
-                    blueLED^=1;
-                if(strcmp(rxChar,"green")==0)
-                    greenLED^=1;
-                index=0;
-            }
-            else {
-                index++;
-            }
+        if(uartEchoReceivedString()){
+            System_printf("String Recebida (TRUE)");
+            System_flush();
         }
     }
 }
@@ -167,23 +153,42 @@ void initUart1(){
 
 }
 
-void writeCharToUart1(char c)
-{
-    while (UART1_FR_R & UART_FR_TXFF); //wait till Transmitter is not full
-    UART1_DR_R = c; //write to UART1
-}
-
 
 void writeStringToUart1(char* str)   //write a string to Uart1
 {
     int i;
-    for (i = 0; i < strlen(str); i++)
-        writeCharToUart1(str[i]);
+    for (i = 0; i < strlen(str); i++) {
+        UARTCharPut(UART1_BASE, str[i]);
+    }
 }
 
 void initLeds(){
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
     GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3);
+}
 
+int uartEchoReceivedString(){
+    while(UARTCharsAvail(UART1_BASE)) //loop while there are chars
+    {
+        rxChar[index] = UART1_DR_R;
+        if(rxChar[index-1]==13)
+        {
+            rxChar[index-1]='\0';
+            if(strcmp(rxChar,"red")==0)
+                redLED^=1;
+            if(strcmp(rxChar,"blue")==0)
+                blueLED^=1;
+            if(strcmp(rxChar,"green")==0)
+                greenLED^=1;
+
+            index=0;
+            writeStringToUart1(rxChar);
+            return 1;
+        }
+        else {
+            index++;
+        }
+    }
+    return 0;
 }
 
