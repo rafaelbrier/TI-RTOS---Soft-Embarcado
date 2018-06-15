@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>Manso-TI_RTOS</name>
+	<name>TI-RTOS_Manso</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -25,4 +25,22 @@
 		<nature>org.eclipse.cdt.core.ccnature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>driverlib.lib</name>
+			<type>1</type>
+			<locationURI>TIVAWARE_INSTALL/driverlib/ccs/Debug/driverlib.lib</locationURI>
+		</link>
+		<link>
+			<name>tm4c123gh6pm.h</name>
+			<type>1</type>
+			<locationURI>PARENT-2-TIVAWARE_INSTALL/Users/RAFAEL/Desktop/TivaCBluetooth-master/TivaCBluetooth-master/tm4c123gh6pm.h</locationURI>
+		</link>
+	</linkedResources>
+	<variableList>
+		<variable>
+			<name>TIVAWARE_INSTALL</name>
+			<value>file:/C:/ti/TivaWare_C_Series-2.1.4.178</value>
+		</variable>
+	</variableList>
 </projectDescription>

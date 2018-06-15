@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <?ccsproject version="1.0"?>
 <projectOptions>
-	<ccsVersion value="7.1.0"/>
+	<ccsVersion value="7.3.0"/>
 	<deviceVariant value="Cortex M.TM4C123GH6PM"/>
 	<deviceFamily value="TMS470"/>
 	<deviceEndianness value="little"/>
-	<codegenToolVersion value="17.6.0.STS"/>
+	<codegenToolVersion value="18.1.2.LTS"/>
 	<isElfFormat value="true"/>
 	<rts value="libc.a"/>
 	<createSlaveProjects value=""/>
-	<templateProperties value="id=com_ti_rtsc_tirtostivac_example_78.projectspec.empty_EK_TM4C123GXL_TI,type=rtsc,products=com.ti.rtsc.TIRTOStivac,xdcToolsVersion=3_32_00_06_core,target=ti.targets.arm.elf.M4F,platform=ti.platforms.tiva:TM4C123GH6PM,buildProfile=release,isHybrid=true,configuroOptions= --compileOptions &quot;${COMPILER_FLAGS} &quot;,"/>
-	<origin value="C:/workspace_TI-Rtos/Manso_TI-RTOS"/>
+	<templateProperties value="id=com_ti_rtsc_tirtostivac_example_79.projectspec.empty_min_EK_TM4C123GXL_TI,type=rtsc,products=com.ti.rtsc.TIRTOStivac,xdcToolsVersion=3_32_00_06_core,target=ti.targets.arm.elf.M4F,platform=ti.platforms.tiva:TM4C123GH6PM,buildProfile=release,isHybrid=true,configuroOptions= --compileOptions &quot;${COMPILER_FLAGS} &quot;,"/>
+	<origin value="C:/Users/RAFAEL/Desktop/Manso_Ti-RTOS/TI-RTOS---Soft-Embarcado"/>
 	<filesToOpen value=""/>
 	<connection value="common/targetdb/connections/Stellaris_ICDI_Connection.xml"/>
 	<isTargetManual value="false"/>
