@@ -96,9 +96,11 @@
 int chipSelectPin = 0x20;  //PB5
 int NRSTPD = 0x01; //PF0
 
+String drinkStr;
 bool aButtonIsPressed;
 int secondCount;
 bool isUserFound;
+int drinkTimeToWait_SEC;
 
 int index;
 char rxChar[10];
@@ -111,6 +113,7 @@ uint8_t status;
 uint32_t readTeste;
 unsigned char str[MAX_LEN];
 char cardID[CARD_LENGTH];
+
 
 //Library modified to work with CCS
 #ifdef __cplusplus
@@ -236,10 +239,49 @@ Void taskGetResponseFunc(UArg arg0, UArg arg1)
 Void taskValvulaFunc(UArg arg0, UArg arg1)
 {
     //System_printf(">>>Task Valvula em primeira execução. \n\n");
+    secondCount=0;
+    Clock_start(oneSecondCount);
 
-    //Clock_start(timeOutClock);
     while (1) {
+        if(isUserFound) {
+            GPIOPinWrite(GPIO_PORTF_BASE, redLED, redLED);
 
+            switch(buttonPressed){
+            case 1 : //300mL
+                drinkTimeToWait_SEC = 6;
+                drinkStr = "Gavioli 300mL";
+                break;
+            case 2 : //500mL
+                drinkTimeToWait_SEC = 10;
+                drinkStr = "Gavioli 500mL";
+                break;
+            case 3 : //700mL
+                drinkTimeToWait_SEC = 14;
+                drinkStr = "Gavioli 700mL";
+                break;
+            default :
+                drinkTimeToWait_SEC = 0; //Error, nunca deve entrar aqui.
+            }
+
+            System_printf("Servindo: %s !! \n\n", drinkStr);
+
+            while(secondCount < drinkTimeToWait_SEC) {
+                //GPIOPinWrite(GPIO_PORTF_BASE, redLED, redLED); Servir bebida
+            }
+
+            System_printf("Bebida servida com sucesso. \n\n");
+
+            Clock_stop(oneSecondCount);
+            GPIOPinWrite(GPIO_PORTF_BASE, redLED, 0);
+            //GPIOPinWrite(GPIO_PORTF_BASE, redLED, redLED); Desligar pino bebida
+            Semaphore_post(semphGetResponse);
+            secondCount=0;
+            Clock_start(oneSecondCount);
+        } else {
+            Clock_stop(oneSecondCount);
+            Semaphore_post(semphGetResponse);
+            secondCount=0;
+        }
     }
 }
 
@@ -382,10 +424,10 @@ int uartEchoReceivedString(){
             rxChar[index-1]='\0';
             index=0;
             if(strcmp(rxChar,"Null")==0){
-                System_printf("Nenhum usuário encontrado cadastrado no cartão!\n", rxChar);
+                System_printf("Nenhum usuário encontrado cadastrado no cartão!\n\n", rxChar);
                 isUserFound = false;
             } else {
-                System_printf("Usuário encontrado! Nome: %s\n", rxChar);
+                System_printf("Usuário encontrado! Nome: %s\n\n", rxChar);
                 isUserFound = true;
             }
             return 1;
