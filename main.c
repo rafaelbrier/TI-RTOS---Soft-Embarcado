@@ -365,7 +365,7 @@ void InitSSI(){
 
     while(SSIDataGetNonBlocking(SSI2_BASE, &junkAuxVar)){}
 
-    System_printf("SSI Enabled! SPI Mode!  \nData: 8bits.\n\n");
+    System_printf("SSI Enabled! SPI Mode!  \nData: 8bits.\n");
     System_flush();
 }
 
@@ -402,6 +402,7 @@ void writeIDToUart1(char* str)   //write a string to Uart1
         UARTCharPut(UART1_BASE, hexToChar[0]);
         UARTCharPut(UART1_BASE, hexToChar[1]);
     }
+    UARTCharPut(UART1_BASE, '\n');
 }
 
 void dumpHex(unsigned char* buffer, int len){
@@ -426,7 +427,10 @@ int uartEchoReceivedString(){
             if(strcmp(rxChar,"Null")==0){
                 System_printf("Nenhum usuário encontrado cadastrado no cartão!\n\n", rxChar);
                 isUserFound = false;
-            } else {
+            } else if (strcmp(rxChar,"Error")==0) {
+                System_printf("Erro na leitura dos dados pelo servidor!\n\n", rxChar);
+                isUserFound = false;
+            }  else {
                 System_printf("Usuário encontrado! Nome: %s\n\n", rxChar);
                 isUserFound = true;
             }
