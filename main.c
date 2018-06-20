@@ -83,12 +83,12 @@
 #include "lib/display.h"
 #include "lib/Mfrc522.h"
 
-//#define redLED      (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 1*4)))
-//#define blueLED      (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 2*4)))
-//#define greenLED      (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 3*4)))
 #define redLED   0x00000002
 #define blueLED  0x00000004
 #define greenLED 0x00000008
+
+#define CARD_WAIT_SEC 10
+#define SERVER_WAIT_SEC 15
 
 #define TASKSTACKSIZE   512
 #define CARD_LENGTH 5
@@ -96,8 +96,11 @@
 int chipSelectPin = 0x20;  //PB5
 int NRSTPD = 0x01; //PF0
 
+bool aButtonIsPressed;
+int secondCount;
+bool isUserFound;
+
 int index;
-int countOverFlow;
 char rxChar[10];
 char strrTeste[10];
 uint32_t i, ii;
@@ -107,7 +110,7 @@ uint8_t AntennaGain;
 uint8_t status;
 uint32_t readTeste;
 unsigned char str[MAX_LEN];
-unsigned char cardID[CARD_LENGTH];
+char cardID[CARD_LENGTH];
 
 //Library modified to work with CCS
 #ifdef __cplusplus
@@ -117,7 +120,7 @@ Mfrc522 Mfrc522(chipSelectPin, NRSTPD);
 //Functions
 void initUart1();
 void initLeds();
-void writeStringToUart1(char* str);
+void writeIDToUart1(char* str);
 int uartEchoReceivedString();
 void initButton1();
 void dumpHex(unsigned char* buffer, int len);
@@ -127,28 +130,38 @@ void InitSSI();
 
 extern "C" {
 Void taskButtonFunc(UArg arg0, UArg arg1)
-{ //  Semaphore_post(semphButton);
-    System_printf("Task Button em primeira execução. \n");
+{
+    // System_printf("Task Button em primeira execução. \n");
+    aButtonIsPressed=false;
+
     while (1) {
         if(GPIOPinRead(GPIO_PORTF_BASE,GPIO_PIN_4)==0x00){
-            System_printf("Botao 1 apertado . \n");
             buttonPressed = 1;
+            aButtonIsPressed=true;
+        } else {
+            GPIOPinWrite(GPIO_PORTF_BASE, greenLED, greenLED);
+        }
+
+        if(aButtonIsPressed){
+            System_printf("Botao %d apertado. Aguardando cartão... \n\n", buttonPressed);
+            GPIOPinWrite(GPIO_PORTF_BASE, greenLED, 0);
             Semaphore_pend(semphButton, BIOS_WAIT_FOREVER); //Aguarda o Semaforo Botao
+            aButtonIsPressed=false;
         }
     }
 }
 
 Void taskCardFunc(UArg arg0, UArg arg1)
 {
-    System_printf("Task Card em primeira execução. \n");
-    countOverFlow=0;
-    Clock_start(timeOutClock);
+    //System_printf("Task Card em primeira execução. \n\n");
+    secondCount=0;
+    Clock_start(oneSecondCount);
 
     while(1){
-        if(countOverFlow==0) {
+        if(secondCount < CARD_WAIT_SEC) {
             status = Mfrc522.Request(PICC_REQIDL, str);
             if(status == MI_OK){
-                System_printf("Cartao Detectado! \n"); //Card Detected
+                System_printf("Cartao Detectado! "); //Card Detected
                 GPIOPinWrite(GPIO_PORTF_BASE, blueLED, blueLED);
 
                 status = Mfrc522.Anticoll(str);
@@ -158,20 +171,25 @@ Void taskCardFunc(UArg arg0, UArg arg1)
                     System_printf("ID: ");
                     dumpHex((unsigned char*)cardID, CARD_LENGTH);
                     GPIOPinWrite(GPIO_PORTF_BASE, blueLED, 0);
-                    Semaphore_pend(semphCard, BIOS_WAIT_FOREVER); //Aguarda o Semaforo Botao
+                    Semaphore_pend(semphCard, BIOS_WAIT_FOREVER); //Aguarda o Semaforo Card
+                    Semaphore_post(semphButton);
+                    /*Para voltar execução*/
+                    secondCount=0;
+                    Clock_start(oneSecondCount);
                 } else {
-                    System_printf("Não foi possível ler o cartão. Favor segurar mais tempo. \n");
+                    System_printf("Não foi possível ler o cartão. Favor segurar mais tempo. \n\n");
                     GPIOPinWrite(GPIO_PORTF_BASE, blueLED, 0);
+                    Clock_start(oneSecondCount);
                 }
             }
-        } else if (countOverFlow==1) {
+        } else if (secondCount >= CARD_WAIT_SEC) {
             /*Se o timer estourar libera o semáforo da primeira Task. Aguarda o cartão por 10 seg apenas.*/
-            Clock_stop(timeOutClock);
-            System_printf("Tempo expirado. \n");
+            Clock_stop(oneSecondCount);
+            System_printf("Tempo expirado! Nenhum cartão foi lido! \n\n");
             Semaphore_post(semphButton);
             /*Para voltar execução*/
-            countOverFlow=0;
-            Clock_start(timeOutClock);
+            secondCount=0;
+            Clock_start(oneSecondCount);
         }
     }
 }
@@ -179,42 +197,54 @@ Void taskCardFunc(UArg arg0, UArg arg1)
 
 Void taskBluetoothFunc(UArg arg0, UArg arg1)
 {
-    System_printf("Task Bluetooth em primeira execução. \n");
+    //System_printf(">>>Task Bluetooth em primeira execução. \n\n");
     while (1) {
-        if(uartEchoReceivedString()){
-            System_printf("String Recebida (TRUE). \n");
-        }
-        /* for test *///////////////
-        for(i=0; i<=100; i++){
-            for(ii=0; ii<=15000000; ii++){
-            }
-            sprintf(strrTeste, "teste: %d", i); // puts string into buffer
-            writeStringToUart1(strrTeste);
-        }
-        /////////////////////////////
+        writeIDToUart1(cardID);
+        System_printf("Aguardando resposta do servidor! \n\n");
+        Semaphore_pend(semphBluetooth, BIOS_WAIT_FOREVER);
+        Semaphore_post(semphCard);
     }
 }
 
 Void taskGetResponseFunc(UArg arg0, UArg arg1)
 {
-    System_printf("Task GetResponse em primeira execução. \n");
-    while (1) {
-        if(uartEchoReceivedString()){
-            System_printf("String Recebida (TRUE). \n");
+    //System_printf(">>>Task GetResponse em primeira execução. \n\n");
+    secondCount=0;
+    Clock_start(oneSecondCount);
+
+    while(1){
+        if(secondCount < SERVER_WAIT_SEC) {
+            if(uartEchoReceivedString()){
+                Semaphore_pend(semphGetResponse, BIOS_WAIT_FOREVER);
+                Semaphore_post(semphBluetooth);
+                /*Para voltar execução*/
+                secondCount=0;
+                Clock_start(oneSecondCount);
+            }
+        } else if (secondCount >= SERVER_WAIT_SEC) {
+            /*Se o timer estourar libera o semáforo da primeira Task. Aguarda o cartão por 10 seg apenas.*/
+            Clock_stop(oneSecondCount);
+            System_printf("Tempo expirado! Nenhuma resposta recebida do servidor! \n\n");
+            Semaphore_post(semphBluetooth);
+            /*Para voltar execução*/
+            secondCount=0;
+            Clock_start(oneSecondCount);
         }
     }
 }
 
 Void taskValvulaFunc(UArg arg0, UArg arg1)
 {
-    System_printf("Task Valvula em primeira execução. \n");
+    //System_printf(">>>Task Valvula em primeira execução. \n\n");
+
+    //Clock_start(timeOutClock);
     while (1) {
 
     }
 }
-Void timeOutClockFunc(UArg arg0){
-    //Clock_stop(timeOutClock);
-    countOverFlow=1;
+
+Void oneSecondCountFunc(UArg arg0){
+    secondCount++;
 }
 }//Fim Extern C
 
@@ -316,11 +346,19 @@ void initButton1(){
     //----------------------------------------------------------------------------------
 }
 
-void writeStringToUart1(char* str)   //write a string to Uart1
+void writeIDToUart1(char* str)   //write a string to Uart1
 {
     int i;
+    char hexToChar[2];
+
+    UARTCharPut(UART1_BASE, buttonPressed + '0');
+    UARTCharPut(UART1_BASE, ',');
+    UARTCharPut(UART1_BASE, ' ');
+
     for (i = 0; i < strlen(str); i++) {
-        UARTCharPut(UART1_BASE, str[i]);
+        sprintf(hexToChar,"%x",str[i]);
+        UARTCharPut(UART1_BASE, hexToChar[0]);
+        UARTCharPut(UART1_BASE, hexToChar[1]);
     }
 }
 
@@ -331,25 +369,25 @@ void dumpHex(unsigned char* buffer, int len){
     for(i=0; i < len; i++) {
         System_printf("%x-", buffer[i]);
     }
-    System_printf("\n");
+    System_printf("\n\n");
 }
 
 int uartEchoReceivedString(){
+    isUserFound = false;
     while(UARTCharsAvail(UART1_BASE)) //loop while there are chars
     {
         rxChar[index] = UART1_DR_R;
         if(rxChar[index-1]==13)
         {
             rxChar[index-1]='\0';
-            //            if(strcmp(rxChar,"red")==0)
-            //                redLED^=1;
-            //            if(strcmp(rxChar,"blue")==0)
-            //                blueLED^=1;
-            //            if(strcmp(rxChar,"green")==0)
-            //                greenLED^=1;
-
             index=0;
-            writeStringToUart1(rxChar);
+            if(strcmp(rxChar,"Null")==0){
+                System_printf("Nenhum usuário encontrado cadastrado no cartão!\n", rxChar);
+                isUserFound = false;
+            } else {
+                System_printf("Usuário encontrado! Nome: %s\n", rxChar);
+                isUserFound = true;
+            }
             return 1;
         }
         else {
