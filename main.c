@@ -128,6 +128,7 @@ int uartEchoReceivedString();
 void initButton1();
 void dumpHex(unsigned char* buffer, int len);
 void InitSSI();
+void writeToUart1(char* str);
 
 //Tasks----------------------------------------------------------------------------------
 
@@ -270,6 +271,7 @@ Void taskValvulaFunc(UArg arg0, UArg arg1)
             }
 
             System_printf("Bebida servida com sucesso. \n\n");
+           // writeToUart1("Ok");
 
             Clock_stop(oneSecondCount);
             GPIOPinWrite(GPIO_PORTF_BASE, redLED, 0);
@@ -333,6 +335,10 @@ void initUart1(){
 
     UARTConfigSetExpClk(UART1_BASE, SysCtlClockGet(), 9600,
                         (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE | UART_CONFIG_PAR_NONE));
+
+    while(UARTCharsAvail(UART1_BASE)){
+        UARTCharGet(UART1_BASE);
+    } // clear buffer
 
     System_printf("UART1 (BlueTooth) Iniciado.\n");
 }
@@ -405,6 +411,15 @@ void writeIDToUart1(char* str)   //write a string to Uart1
     UARTCharPut(UART1_BASE, '\n');
 }
 
+void writeToUart1(char* str){
+    int i;
+    for (i = 0; i < strlen(str); i++) {
+         UARTCharPut(UART1_BASE, str[i]);
+       }
+    UARTCharPut(UART1_BASE, '\n');
+}
+
+
 void dumpHex(unsigned char* buffer, int len){
     int i;
 
@@ -419,16 +434,17 @@ int uartEchoReceivedString(){
     isUserFound = false;
     while(UARTCharsAvail(UART1_BASE)) //loop while there are chars
     {
-        rxChar[index] = UART1_DR_R;
+        rxChar[index] = UARTCharGet(UART1_BASE);//UART1_DR_R;
+        System_printf("%s  ", rxChar);
         if(rxChar[index-1]==13)
         {
             rxChar[index-1]='\0';
             index=0;
             if(strcmp(rxChar,"Null")==0){
-                System_printf("Nenhum usuário encontrado cadastrado no cartão!\n\n", rxChar);
+                System_printf("Nenhum usuário encontrado cadastrado no cartão!\n\n");
                 isUserFound = false;
             } else if (strcmp(rxChar,"Error")==0) {
-                System_printf("Erro na leitura dos dados pelo servidor!\n\n", rxChar);
+                System_printf("Erro na leitura dos dados pelo servidor!\n\n");
                 isUserFound = false;
             }  else {
                 System_printf("Usuário encontrado! Nome: %s\n\n", rxChar);
