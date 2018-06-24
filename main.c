@@ -100,11 +100,11 @@ String drinkStr;
 bool aButtonIsPressed;
 int secondCount;
 bool isUserFound;
+bool cardRegistering;
 int drinkTimeToWait_SEC;
 
 int index;
-char rxChar[10];
-char strrTeste[10];
+char rxChar[100];
 uint32_t i, ii;
 uint8_t Version;
 uint8_t buttonPressed;
@@ -315,6 +315,9 @@ int main(void)
 
     System_printf("Programa Iniciado.\n\n");
 
+    isUserFound = false;
+    cardRegistering = false;
+
     /* Start BIOS */
     BIOS_start();
 
@@ -435,16 +438,18 @@ int uartEchoReceivedString(){
     while(UARTCharsAvail(UART1_BASE)) //loop while there are chars
     {
         rxChar[index] = UARTCharGet(UART1_BASE);//UART1_DR_R;
-        System_printf("%s  ", rxChar);
-        if(rxChar[index-1]==13)
+        if(rxChar[index]==13)
         {
-            rxChar[index-1]='\0';
+            rxChar[index]='\0';
             index=0;
             if(strcmp(rxChar,"Null")==0){
                 System_printf("Nenhum usuário encontrado cadastrado no cartão!\n\n");
                 isUserFound = false;
             } else if (strcmp(rxChar,"Error")==0) {
                 System_printf("Erro na leitura dos dados pelo servidor!\n\n");
+                isUserFound = false;
+            } else if (strcmp(rxChar,"Cardreg")==0) {
+                System_printf("Cartão registrado com sucesso!\n\n");
                 isUserFound = false;
             }  else {
                 System_printf("Usuário encontrado! Nome: %s\n\n", rxChar);
