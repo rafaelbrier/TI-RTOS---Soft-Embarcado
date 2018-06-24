@@ -38,6 +38,7 @@
  * PD3 [pin 26] -> D7
  *---------------------------------
  *
+ *BOTAO DE LEITURA ----------- 9
  */
 
 /* XDCtools Header files */
@@ -140,7 +141,7 @@ Void taskButtonFunc(UArg arg0, UArg arg1)
 
     while (1) {
         if(GPIOPinRead(GPIO_PORTF_BASE,GPIO_PIN_4)==0x00){
-            buttonPressed = 1;
+            buttonPressed = 9;
             aButtonIsPressed=true;
         } else {
             GPIOPinWrite(GPIO_PORTF_BASE, greenLED, greenLED);
@@ -203,10 +204,17 @@ Void taskBluetoothFunc(UArg arg0, UArg arg1)
 {
     //System_printf(">>>Task Bluetooth em primeira execução. \n\n");
     while (1) {
-        writeIDToUart1(cardID);
-        System_printf("Aguardando resposta do servidor! \n\n");
-        Semaphore_pend(semphBluetooth, BIOS_WAIT_FOREVER);
-        Semaphore_post(semphCard);
+        if(buttonPressed == 9){
+            writeIDToUart1(cardID);
+            System_printf("ID enviado, retornando! \n\n");
+            Semaphore_post(semphCard);
+        } else {
+            writeIDToUart1(cardID);
+            System_printf("Aguardando resposta do servidor! \n\n");
+            Semaphore_pend(semphBluetooth, BIOS_WAIT_FOREVER);
+            Semaphore_post(semphCard);
+        }
+
     }
 }
 
@@ -271,7 +279,7 @@ Void taskValvulaFunc(UArg arg0, UArg arg1)
             }
 
             System_printf("Bebida servida com sucesso. \n\n");
-           // writeToUart1("Ok");
+            writeToUart1("Ok"); //Confirmação de Bebida servida com sucesso
 
             Clock_stop(oneSecondCount);
             GPIOPinWrite(GPIO_PORTF_BASE, redLED, 0);
@@ -402,7 +410,7 @@ void writeIDToUart1(char* str)   //write a string to Uart1
     int i;
     char hexToChar[2];
 
-    UARTCharPut(UART1_BASE, buttonPressed + '0');
+    UARTCharPut(UART1_BASE, buttonPressed +'0');
     UARTCharPut(UART1_BASE, ',');
     UARTCharPut(UART1_BASE, ' ');
 
@@ -447,9 +455,6 @@ int uartEchoReceivedString(){
                 isUserFound = false;
             } else if (strcmp(rxChar,"Error")==0) {
                 System_printf("Erro na leitura dos dados pelo servidor!\n\n");
-                isUserFound = false;
-            } else if (strcmp(rxChar,"Cardreg")==0) {
-                System_printf("Cartão registrado com sucesso!\n\n");
                 isUserFound = false;
             }  else {
                 System_printf("Usuário encontrado! Nome: %s\n\n", rxChar);
