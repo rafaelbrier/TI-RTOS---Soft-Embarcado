@@ -141,7 +141,7 @@ Void taskButtonFunc(UArg arg0, UArg arg1)
 
     while (1) {
         if(GPIOPinRead(GPIO_PORTF_BASE,GPIO_PIN_4)==0x00){
-            buttonPressed = 9;
+            buttonPressed = 1;
             aButtonIsPressed=true;
         } else {
             GPIOPinWrite(GPIO_PORTF_BASE, greenLED, greenLED);
