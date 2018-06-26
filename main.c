@@ -90,6 +90,7 @@
 
 #define CARD_WAIT_SEC 10
 #define SERVER_WAIT_SEC 15
+#define RXCHAR_SIZE 100
 
 #define TASKSTACKSIZE   512
 #define CARD_LENGTH 5
@@ -105,7 +106,7 @@ bool cardRegistering;
 int drinkTimeToWait_SEC;
 
 int index;
-char rxChar[100];
+char rxChar[RXCHAR_SIZE];
 uint32_t i, ii;
 uint8_t Version;
 uint8_t buttonPressed;
@@ -453,16 +454,20 @@ int uartEchoReceivedString(){
             if(strcmp(rxChar,"Null")==0){
                 System_printf("Nenhum usuário encontrado cadastrado no cartão!\n\n");
                 isUserFound = false;
+
             } else if (strcmp(rxChar,"Error")==0) {
-                System_printf("Erro na leitura dos dados pelo servidor!\n\n");
+                System_printf("Saldo insufuciente!\n\n");
                 isUserFound = false;
+
             }  else {
-                System_printf("Usuário encontrado! Nome: %s\n\n", rxChar);
+                System_printf("Usuário encontrado!\nNome: %s\n\n", rxChar);
                 isUserFound = true;
+
             }
-            return 1;
-        }
-        else {
+          memset(rxChar, 0, RXCHAR_SIZE);
+          return 1;
+
+        } else {
             index++;
         }
     }
