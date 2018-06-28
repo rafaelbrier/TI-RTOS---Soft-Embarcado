@@ -125,6 +125,7 @@ Mfrc522 Mfrc522(chipSelectPin, NRSTPD);
 //Functions
 void initUart1();
 void initLeds();
+void initBuzzRele();
 void writeIDToUart1(char* str);
 int uartEchoReceivedString();
 void initButton1();
@@ -168,7 +169,8 @@ Void taskCardFunc(UArg arg0, UArg arg1)
             status = Mfrc522.Request(PICC_REQIDL, str);
             if(status == MI_OK){
                 System_printf("Cartao Detectado! "); //Card Detected
-                GPIOPinWrite(GPIO_PORTF_BASE, blueLED, blueLED);
+                GPIOPinWrite(GPIO_PORTF_BASE, blueLED, blueLED);//LigaBlueLed
+                GPIOPinWrite(GPIO_PORTE_BASE, GPIO_PIN_4, 0);//LigaBuzzer
 
                 status = Mfrc522.Anticoll(str);
                 memcpy(cardID, str, CARD_LENGTH);
@@ -176,7 +178,9 @@ Void taskCardFunc(UArg arg0, UArg arg1)
                 if(status == MI_OK){
                     System_printf("ID: ");
                     dumpHex((unsigned char*)cardID, CARD_LENGTH);
-                    GPIOPinWrite(GPIO_PORTF_BASE, blueLED, 0);
+                    SysCtlDelay(1000000);
+                    GPIOPinWrite(GPIO_PORTF_BASE, blueLED, 0);//DesligaBlueLed
+                    GPIOPinWrite(GPIO_PORTE_BASE, GPIO_PIN_4, GPIO_PIN_4);//DesligaBuzzer
                     Semaphore_pend(semphCard, BIOS_WAIT_FOREVER); //Aguarda o Semaforo Card
                     Semaphore_post(semphButton);
                     /*Para voltar execução*/
@@ -184,7 +188,9 @@ Void taskCardFunc(UArg arg0, UArg arg1)
                     Clock_start(oneSecondCount);
                 } else {
                     System_printf("Não foi possível ler o cartão. Favor segurar mais tempo. \n\n");
-                    GPIOPinWrite(GPIO_PORTF_BASE, blueLED, 0);
+                    SysCtlDelay(1000000);
+                    GPIOPinWrite(GPIO_PORTF_BASE, blueLED, 0);//DesligaBlueLed
+                    GPIOPinWrite(GPIO_PORTE_BASE, GPIO_PIN_4, GPIO_PIN_4);//DesligaBuzzer
                     Clock_start(oneSecondCount);
                 }
             }
@@ -276,8 +282,9 @@ Void taskValvulaFunc(UArg arg0, UArg arg1)
             System_printf("Servindo: %s !! \n\n", drinkStr);
 
             while(secondCount < drinkTimeToWait_SEC) {
-                //GPIOPinWrite(GPIO_PORTF_BASE, redLED, redLED); Servir bebida
+                GPIOPinWrite(GPIO_PORTE_BASE, GPIO_PIN_5, GPIO_PIN_5);//Liga Relé
             }
+            GPIOPinWrite(GPIO_PORTE_BASE, GPIO_PIN_5, 0); //Desliga Relé
 
             System_printf("Bebida servida com sucesso. \n\n");
             writeToUart1("Ok"); //Confirmação de Bebida servida com sucesso
@@ -308,11 +315,14 @@ int main(void)
 {
     initLeds();
     initButton1();
+    initBuzzRele();
     initUart1();
     InitSSI();
 
     GPIOPinWrite(GPIO_PORTB_BASE, chipSelectPin, 0);
     GPIOPinWrite(GPIO_PORTF_BASE, NRSTPD, NRSTPD);
+    GPIOPinWrite(GPIO_PORTE_BASE, GPIO_PIN_4, GPIO_PIN_4); //Buzzer ativa em Nivel Baixo
+    GPIOPinWrite(GPIO_PORTE_BASE, GPIO_PIN_5, 0); //Relé Off
 
     Mfrc522.Init();
 
@@ -335,7 +345,11 @@ int main(void)
 }
 
 //==================================================================================================
+void initBuzzRele(){
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
+    GPIOPinTypeGPIOOutput(GPIO_PORTE_BASE, GPIO_PIN_4 | GPIO_PIN_5);
 
+}
 
 void initUart1(){
     SysCtlPeripheralEnable(SYSCTL_PERIPH_UART1); //habilita periférico UART1
@@ -426,8 +440,8 @@ void writeIDToUart1(char* str)   //write a string to Uart1
 void writeToUart1(char* str){
     int i;
     for (i = 0; i < strlen(str); i++) {
-         UARTCharPut(UART1_BASE, str[i]);
-       }
+        UARTCharPut(UART1_BASE, str[i]);
+    }
     UARTCharPut(UART1_BASE, '\n');
 }
 
@@ -464,8 +478,8 @@ int uartEchoReceivedString(){
                 isUserFound = true;
 
             }
-          memset(rxChar, 0, RXCHAR_SIZE);
-          return 1;
+            memset(rxChar, 0, RXCHAR_SIZE);
+            return 1;
 
         } else {
             index++;
