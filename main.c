@@ -178,7 +178,7 @@ Void taskCardFunc(UArg arg0, UArg arg1)
                 if(status == MI_OK){
                     System_printf("ID: ");
                     dumpHex((unsigned char*)cardID, CARD_LENGTH);
-                    SysCtlDelay(1000000);
+                    SysCtlDelay(1200000);
                     GPIOPinWrite(GPIO_PORTF_BASE, blueLED, 0);//DesligaBlueLed
                     GPIOPinWrite(GPIO_PORTE_BASE, GPIO_PIN_4, GPIO_PIN_4);//DesligaBuzzer
                     Semaphore_pend(semphCard, BIOS_WAIT_FOREVER); //Aguarda o Semaforo Card
@@ -188,7 +188,7 @@ Void taskCardFunc(UArg arg0, UArg arg1)
                     Clock_start(oneSecondCount);
                 } else {
                     System_printf("Não foi possível ler o cartão. Favor segurar mais tempo. \n\n");
-                    SysCtlDelay(1000000);
+                    SysCtlDelay(1200000);
                     GPIOPinWrite(GPIO_PORTF_BASE, blueLED, 0);//DesligaBlueLed
                     GPIOPinWrite(GPIO_PORTE_BASE, GPIO_PIN_4, GPIO_PIN_4);//DesligaBuzzer
                     Clock_start(oneSecondCount);
@@ -282,9 +282,9 @@ Void taskValvulaFunc(UArg arg0, UArg arg1)
             System_printf("Servindo: %s !! \n\n", drinkStr);
 
             while(secondCount < drinkTimeToWait_SEC) {
-                GPIOPinWrite(GPIO_PORTE_BASE, GPIO_PIN_5, GPIO_PIN_5);//Liga Relé
+                GPIOPinWrite(GPIO_PORTA_BASE, GPIO_PIN_7, GPIO_PIN_7);//Liga Relé
             }
-            GPIOPinWrite(GPIO_PORTE_BASE, GPIO_PIN_5, 0); //Desliga Relé
+            GPIOPinWrite(GPIO_PORTA_BASE, GPIO_PIN_7, 0); //Desliga Relé
 
             System_printf("Bebida servida com sucesso. \n\n");
             writeToUart1("Ok"); //Confirmação de Bebida servida com sucesso
@@ -322,7 +322,7 @@ int main(void)
     GPIOPinWrite(GPIO_PORTB_BASE, chipSelectPin, 0);
     GPIOPinWrite(GPIO_PORTF_BASE, NRSTPD, NRSTPD);
     GPIOPinWrite(GPIO_PORTE_BASE, GPIO_PIN_4, GPIO_PIN_4); //Buzzer ativa em Nivel Baixo
-    GPIOPinWrite(GPIO_PORTE_BASE, GPIO_PIN_5, 0); //Relé Off
+    GPIOPinWrite(GPIO_PORTA_BASE, GPIO_PIN_7, 0); //Relé Off
 
     Mfrc522.Init();
 
@@ -347,8 +347,9 @@ int main(void)
 //==================================================================================================
 void initBuzzRele(){
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
-    GPIOPinTypeGPIOOutput(GPIO_PORTE_BASE, GPIO_PIN_4 | GPIO_PIN_5);
-
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+    GPIOPinTypeGPIOOutput(GPIO_PORTE_BASE, GPIO_PIN_4);
+    GPIOPinTypeGPIOOutput(GPIO_PORTA_BASE, GPIO_PIN_7);
 }
 
 void initUart1(){
